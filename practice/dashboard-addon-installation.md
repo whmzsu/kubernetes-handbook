@@ -13,9 +13,13 @@ dashboard-controller.yaml  dashboard-service.yaml dashboard-rbac.yaml
 
 已经修改好的 yaml 文件见：[../manifests/dashboard](https://github.com/rootsongjc/kubernetes-handbook/blob/master/manifests/dashboard)
 
+文件中的kubernetes-dashboard-amd64镜像为本地镜像地址需要修改为对应的镜像地址和版本：
+
+kubernetes 1.7.11 可以使用此镜像地址：`registry.cn-qingdao.aliyuncs.com/haitao/kubernetes-dashboard-amd64:v1.7.0`  替换 `dashboard-controller.yaml` 文件中的镜像地址。
+
 由于 `kube-apiserver` 启用了 `RBAC` 授权，而官方源码目录的 `dashboard-controller.yaml` 没有定义授权的 ServiceAccount，所以后续访问 API server 的 API 时会被拒绝，web中提示：
 
-```
+```bash
 Forbidden (403)
 
 User "system:serviceaccount:kube-system:default" cannot list jobs.batch in the namespace "default". (get jobs.batch)
@@ -54,7 +58,7 @@ $ diff dashboard-service.yaml.orig dashboard-service.yaml
 >   type: NodePort
 ```
 
-+ 指定端口类型为 NodePort，这样外界可以通过地址 nodeIP:nodePort 访问 dashboard；
++ 指定端口类型为 NodePort，这样外界可以通过地址 `nodeIP:nodePort` 访问 dashboard；
 
 ## 配置dashboard-controller
 
@@ -63,7 +67,7 @@ $ diff dashboard-controller.yaml.orig dashboard-controller.yaml
 23c23
 <         image: gcr.io/google_containers/kubernetes-dashboard-amd64:v1.6.0
 ---
->         image: sz-pg-oam-docker-hub-001.tendcloud.com/library/kubernetes-dashboard-amd64:v1.6.0
+>         image: harbor-001.jimmysong.io/library/kubernetes-dashboard-amd64:v1.6.0
 ```
 
 ## 执行所有定义文件
@@ -158,7 +162,7 @@ Kubernetes 1.6 版本的 dashboard 的镜像已经到了 v1.6.3 版本，我们�
 修改 `dashboard-controller.yaml` 文件中的镜像的版本将 `v1.6.0` 更改为 `v1.6.3`。
 
 ```yaml
-image: sz-pg-oam-docker-hub-001.tendcloud.com/library/kubernetes-dashboard-amd64:v1.6.3
+image: harbor-001.jimmysong.io/library/kubernetes-dashboard-amd64:v1.6.3
 ```
 
 然后执行下面的命令：
@@ -195,6 +199,52 @@ Dashboard 的访问地址不变，重新访问 <http://172.20.0.113:8080/api/v1/
 
 关于如何将dashboard从1.6版本升级到1.7版本请参考[升级dashboard](dashboard-upgrade.md)。
 
+## 问题
+
+### 1. 按照教程安装后，发现dashboard pod 无法启动
+
+**场景一**
+```
+kubectl -n kube-system describe pod dashboard-xxxxxxx
+```
+
+![pod无法正常启动](../images/dashboard-addon-installation001.png)
+
+可以尝试删除所有相关“资源”再重试一次，如：secret、serviceaccount、service、pod、deployment
+
+**场景二**
+
+   ```bash
+   kubectl describe pod -n kube-system kubernetes-dashboard-7b7bf9bcbd-xxxxx
+   Events:
+   Type     Reason                 Age                From                    Message
+   ----     ------                 ----               ----                    -------
+   Normal   Scheduled              49s                default-scheduler       Successfully assigned kubernetes-dashboard-7b7bf9bcbd-625cb to 192.168.1.101
+   Normal   SuccessfulMountVolume  49s                kubelet, 192.168.1.101  MountVolume.SetUp succeeded for volume "tmp-volume"
+   Warning  FailedMount            17s (x7 over 49s)  kubelet, 192.168.1.101  MountVolume.SetUp failed for volume "kubernetes-dashboard-certs" : secrets "kubernetes-dashboard-certs" is forbidden: User "system:node:192.168.1.233" cannot get secrets in the namespace "kube-system": no path found to object
+   Warning  FailedMount            17s (x7 over 49s)  kubelet, 192.168.1.101  MountVolume.SetUp failed for volume "kubernetes-dashboard-token-27kdp" : secrets "kubernetes-dashboard-token-27kdp" is forbidden: User "system:node:192.168.1.233" cannot get secrets in the namespace "kube-system": no path found to object
+   ```
+通过官方文档：[RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#service-account-permissions)。可以了解到，对于k8s1.8+版本，system:node不会进行默认绑定。因此对于分配到其他node的pod，会出现forbidden。
+
+需要手动bind各个node：
+
+   ```bash
+   kubectl create clusterrolebinding node233 --clusterrole=system:node --user=system:node:192.168.1.233
+   kubectl describe pod -n kube-system kubernetes-dashboard-7b7bf9bcbd-xxxxx
+   Events:
+   Type    Reason                 Age   From                    Message
+   ----    ------                 ----  ----                    -------
+   Normal  Scheduled              15s   default-scheduler       Successfully assigned kubernetes-dashboard-7b7bf9bcbd-pq6pk to 192.168.1.101
+   Normal  SuccessfulMountVolume  15s   kubelet, 192.168.1.101  MountVolume.SetUp succeeded for volume "tmp-volume"
+   Normal  SuccessfulMountVolume  15s   kubelet, 192.168.1.101  MountVolume.SetUp succeeded for volume "kubernetes-dashboard-certs"
+   Normal  SuccessfulMountVolume  15s   kubelet, 192.168.1.101  MountVolume.SetUp succeeded for volume "kubernetes-dashboard-token-8rj79"
+   Normal  Pulling                15s   kubelet, 192.168.1.101  pulling image "registry.cn-hangzhou.aliyuncs.com/google_containers/kubernetes-dashboard-amd64:v1.8.3"
+   ```
+
+### 2. 自定义dashboard启动参数
+
+可以在dashboard的YAML文件中配置[启动参数](https://github.com/kubernetes/dashboard/wiki/Dashboard-arguments)，比如设置token的默认过期时间、heapster地址、绑定的证书等。
+
 ## 参考
 
-[WebUI(Dashboard) 文档](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/)
+- [WebUI(Dashboard) 文档](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/)

@@ -10,13 +10,13 @@
 | [client-python](https://github.com/kubernetes-incubator/client-python) | python客户端，kubernetes-incubator           | 官方支持   |
 | [Java client](https://github.com/fabric8io/kubernetes-client) | fabric8中的一部分，kubernetes的java客户端          | redhat |
 
-下面，我们基于[client-go](https://github.com/kubernetes/client-go)，对Deployment升级镜像的步骤进行了定制，通过命令行传递一个Deployment的名字、应用容器名和新image名字的方式来升级。代码和使用方式见 https://github.com/rootsongjc/kubernetes-client-go-sample 。
+下面，我们基于[client-go](https://github.com/kubernetes/client-go)，对Deployment升级镜像的步骤进行了定制，通过命令行传递一个Deployment的名字、应用容器名和新image名字的方式来升级。
 
 ## kubernetes-client-go-sample
 
 代码如下：
 
-```Go
+```go
 package main
 
 import (
@@ -145,16 +145,16 @@ Usage of ./update-deployment-image:
 **使用不存在的image更新**
 
 ```bash
- $ ./update-deployment-image -deployment filebeat-test -image sz-pg-oam-docker-hub-001.tendcloud.com/library/analytics-docker-test:Build_9 
+ $ ./update-deployment-image -deployment filebeat-test -image harbor-001.jimmysong.io/library/analytics-docker-test:Build_9 
 Found deployment
 name -> filebeat-test
-Old image -> sz-pg-oam-docker-hub-001.tendcloud.com/library/analytics-docker-test:Build_8
-New image -> sz-pg-oam-docker-hub-001.tendcloud.com/library/analytics-docker-test:Build_9
+Old image -> harbor-001.jimmysong.io/library/analytics-docker-test:Build_8
+New image -> harbor-001.jimmysong.io/library/analytics-docker-test:Build_9
 ```
 
 查看Deployment的event。
 
-```Bash
+```bash
 $ kubectl describe deployment filebeat-test   
 Name:			filebeat-test
 Namespace:		default
@@ -200,11 +200,11 @@ filebeat-test-2470325483-gc14k   1/2       ImagePullBackOff   0          4m
 将image设置为原来的镜像。
 
 ```bash
-$ ./update-deployment-image -deployment filebeat-test -image sz-pg-oam-docker-hub-001.tendcloud.com/library/analytics-docker-test:Build_8
+$ ./update-deployment-image -deployment filebeat-test -image harbor-001.jimmysong.io/library/analytics-docker-test:Build_8
 Found deployment
 name -> filebeat-test
-Old image -> sz-pg-oam-docker-hub-001.tendcloud.com/library/analytics-docker-test:Build_9
-New image -> sz-pg-oam-docker-hub-001.tendcloud.com/library/analytics-docker-test:Build_8
+Old image -> harbor-001.jimmysong.io/library/analytics-docker-test:Build_9
+New image -> harbor-001.jimmysong.io/library/analytics-docker-test:Build_8
 ```
 
 现在再查看Deployment的状态。

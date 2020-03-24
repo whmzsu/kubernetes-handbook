@@ -1,7 +1,7 @@
 # Service
 
 Kubernetes [`Pod`](https://kubernetes.io/docs/user-guide/pods) 是有生命周期的，它们可以被创建，也可以被销毁，然而一旦被销毁生命就永远结束。 
-通过 [`ReplicationController`](https://kubernetes.io/docs/user-guide/replication-controller) 能够动态地创建和销毁 `Pod`（例如，需要进行扩缩容，或者执行 [滚动升级](https://kubernetes.io/docs/user-guide/kubectl/v1.7/#rolling-update)）。 
+通过 [`ReplicationController`](https://kubernetes.io/docs/user-guide/replication-controller) 能够动态地创建和销毁 `Pod`。 
 每个 `Pod` 都会获取它自己的 IP 地址，即使这些 IP 地址不总是稳定可依赖的。
 这会导致一个问题：在 Kubernetes 集群中，如果一组 `Pod`（称为 backend）为其它 `Pod` （称为 frontend）提供服务，那么那些 frontend 该如何发现，并连接到这组 `Pod` 中的哪些 backend 呢？
 
@@ -113,6 +113,8 @@ spec:
 在 Kubernetes v1.0 版本，代理完全在 userspace。在 Kubernetes v1.1 版本，新增了 iptables 代理，但并不是默认的运行模式。
 从 Kubernetes v1.2 起，默认就是 iptables 代理。
 
+在Kubernetes v1.8.0-beta.0中，添加了ipvs代理。
+
 在 Kubernetes v1.0 版本，`Service` 是 “4层”（TCP/UDP over IP）概念。
 在 Kubernetes v1.1 版本，新增了 `Ingress` API（beta 版），用来表示 “7层”（HTTP）服务。
 
@@ -149,6 +151,23 @@ spec:
 
 
 
+### ipvs 代理模式
+
+这种模式，kube-proxy会监视Kubernetes `Service`对象和`Endpoints`，调用`netlink`接口以相应地创建ipvs规则并定期与Kubernetes `Service`对象和`Endpoints`对象同步ipvs规则，以确保ipvs状态与期望一致。访问服务时，流量将被重定向到其中一个后端Pod。
+
+与iptables类似，ipvs基于netfilter 的 hook 功能，但使用哈希表作为底层数据结构并在内核空间中工作。这意味着ipvs可以更快地重定向流量，并且在同步代理规则时具有更好的性能。此外，ipvs为负载均衡算法提供了更多选项，例如：
+
+- `rr`：轮询调度
+- `lc`：最小连接数
+- `dh`：目标哈希
+- `sh`：源哈希
+- `sed`：最短期望延迟
+- `nq`： 不排队调度
+
+**注意：** ipvs模式假定在运行kube-proxy之前在节点上都已经安装了IPVS内核模块。当kube-proxy以ipvs代理模式启动时，kube-proxy将验证节点上是否安装了IPVS模块，如果未安装，则kube-proxy将回退到iptables代理模式。
+
+![ipvs代理模式下Service概览图](../images/service-ipvs-overview.png)
+
 ## 多端口 Service
 
 很多 `Service` 需要暴露多个端口。对于这种情况，Kubernetes 支持在 `Service` 对象中定义多个端口。
@@ -176,7 +195,7 @@ spec:
 ## 选择自己的 IP 地址
 
 在 `Service` 创建的请求中，可以通过设置 `spec.clusterIP` 字段来指定自己的集群 IP 地址。
-比如，希望替换一个已经已存在的 DNS 条目，或者遗留系统已经配置了一个固定的 IP 且很难重新配置。
+比如，希望替换一个已经存在的 DNS 条目，或者遗留系统已经配置了一个固定的 IP 且很难重新配置。
 用户选择的 IP 地址必须合法，并且这个 IP 地址在 `service-cluster-ip-range` CIDR 范围内，这对 API Server 来说是通过一个标识来指定的。
 如果 IP 地址不合法，API Server 会返回 HTTP 状态码 422，表示值不合法。
 
@@ -197,7 +216,7 @@ Kubernetes 支持2种基本的服务发现模式 —— 环境变量和 DNS。
 ### 环境变量
 
 当 `Pod` 运行在 `Node` 上，kubelet 会为每个活跃的 `Service` 添加一组环境变量。
-它同时支持 [Docker links 兼容](https://docs.docker.com/userguide/dockerlinks/) 变量（查看 [makeLinkVariables](http://releases.k8s.io/{{page.githubbranch}}/pkg/kubelet/envvars/envvars.go#L49)）、简单的 `{SVCNAME}_SERVICE_HOST` 和 `{SVCNAME}_SERVICE_PORT` 变量，这里 `Service` 的名称需大写，横线被转换成下划线。
+它同时支持 [Docker links 兼容](https://docs.docker.com/userguide/dockerlinks/) 变量（查看 makeLinkVariables）、简单的 `{SVCNAME}_SERVICE_HOST` 和 `{SVCNAME}_SERVICE_PORT` 变量，这里 `Service` 的名称需大写，横线被转换成下划线。
 
 举个例子，一个名称为 `"redis-master"` 的 Service 暴露了 TCP 端口 6379，同时给它分配了 Cluster IP 地址 10.0.0.11，这个 Service 生成了如下环境变量：
 
@@ -445,7 +464,7 @@ Kubernetes 最主要的哲学之一，是用户不应该暴露那些能够导致
 
 ## API 对象
 
-在 Kubernetes REST API 中，Service 是 top-level 资源。关于 API 对象的更多细节可以查看：[Service API 对象](https://kubernetes.io/docs/api-reference/v1.7/#service-v1-core)。
+在 Kubernetes REST API 中，Service 是 top-level 资源。
 
 ## 更多信息
 

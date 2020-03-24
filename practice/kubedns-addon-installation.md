@@ -4,28 +4,22 @@
 
 该插件直接使用kubernetes部署，官方的配置文件中包含以下镜像：
 
-    gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.1
-    gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.1
-    gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.1
+```ini
+gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.1
+gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.1
+gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.1
+```
 我clone了上述镜像，上传到我的私有镜像仓库：
 
-```
-sz-pg-oam-docker-hub-001.tendcloud.com/library/k8s-dns-dnsmasq-nanny-amd64:1.14.1
-sz-pg-oam-docker-hub-001.tendcloud.com/library/k8s-dns-kube-dns-amd64:1.14.1
-sz-pg-oam-docker-hub-001.tendcloud.com/library/k8s-dns-sidecar-amd64:1.14.1
-```
-
-同时上传了一份到时速云备份：
-
-```
-index.tenxcloud.com/jimmy/k8s-dns-dnsmasq-nanny-amd64:1.14.1
-index.tenxcloud.com/jimmy/k8s-dns-kube-dns-amd64:1.14.1
-index.tenxcloud.com/jimmy/k8s-dns-sidecar-amd64:1.14.1
+```ini
+harbor-001.jimmysong.io/library/k8s-dns-dnsmasq-nanny-amd64:1.14.1
+harbor-001.jimmysong.io/library/k8s-dns-kube-dns-amd64:1.14.1
+harbor-001.jimmysong.io/library/k8s-dns-sidecar-amd64:1.14.1
 ```
 
 以下yaml配置文件中使用的是私有镜像仓库中的镜像。
 
-``` 
+``` ini
 kubedns-cm.yaml  
 kubedns-sa.yaml  
 kubedns-controller.yaml  
@@ -38,7 +32,7 @@ kubedns-svc.yaml
 
 预定义的 RoleBinding `system:kube-dns` 将 kube-system 命名空间的 `kube-dns` ServiceAccount 与 `system:kube-dns` Role 绑定， 该 Role 具有访问 kube-apiserver DNS 相关 API 的权限；
 
-```Bash
+```bash
 $ kubectl get clusterrolebindings system:kube-dns -o yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -87,7 +81,7 @@ $ diff kubedns-controller.yaml.base kubedns-controller.yaml
 58c58
 <         image: gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.1
 ---
->         image: sz-pg-oam-docker-hub-001.tendcloud.com/library/k8s-dns-kube-dns-amd64:v1.14.1
+>         image: harbor-001.jimmysong.io/library/k8s-dns-kube-dns-amd64:v1.14.1
 88c88
 <         - --domain=__PILLAR__DNS__DOMAIN__.
 ---
@@ -99,7 +93,7 @@ $ diff kubedns-controller.yaml.base kubedns-controller.yaml
 110c110
 <         image: gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.1
 ---
->         image: sz-pg-oam-docker-hub-001.tendcloud.com/library/k8s-dns-dnsmasq-nanny-amd64:v1.14.1
+>         image: harbor-001.jimmysong.io/library/k8s-dns-dnsmasq-nanny-amd64:v1.14.1
 129c129
 <         - --server=/__PILLAR__DNS__DOMAIN__/127.0.0.1#10053
 ---
@@ -107,7 +101,7 @@ $ diff kubedns-controller.yaml.base kubedns-controller.yaml
 148c148
 <         image: gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.1
 ---
->         image: sz-pg-oam-docker-hub-001.tendcloud.com/library/k8s-dns-sidecar-amd64:v1.14.1
+>         image: harbor-001.jimmysong.io/library/k8s-dns-sidecar-amd64:v1.14.1
 161,162c161,162
 <         - --probe=kubedns,127.0.0.1:10053,kubernetes.default.svc.__PILLAR__DNS__DOMAIN__,5,A
 <         - --probe=dnsmasq,127.0.0.1:53,kubernetes.default.svc.__PILLAR__DNS__DOMAIN__,5,A
@@ -133,7 +127,7 @@ $ kubectl create -f .
 新建一个 Deployment
 
 ``` bash
-$ cat  my-nginx.yaml
+$ cat >> my-nginx.yaml << EOF
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -147,9 +141,10 @@ spec:
     spec:
       containers:
       - name: my-nginx
-        image: sz-pg-oam-docker-hub-001.tendcloud.com/library/nginx:1.9
+        image: harbor-001.jimmysong.io/library/nginx:1.9
         ports:
         - containerPort: 80
+EOF
 $ kubectl create -f my-nginx.yaml
 ```
 
@@ -168,7 +163,7 @@ $ kubectl create -f nginx-pod.yaml
 $ kubectl exec  nginx -i -t -- /bin/bash
 root@nginx:/# cat /etc/resolv.conf
 nameserver 10.254.0.2
-search default.svc.cluster.local. svc.cluster.local. cluster.local. tendcloud.com
+search default.svc.cluster.local. svc.cluster.local. cluster.local. jimmysong.io
 options ndots:5
 
 root@nginx:/# ping my-nginx

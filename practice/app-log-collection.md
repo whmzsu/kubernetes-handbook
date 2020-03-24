@@ -29,9 +29,7 @@ Kubernetes官方提供了EFK的日志收集解决方案，但是这种方案并�
 
 ![filebeat日志收集架构图](../images/filebeat-log-collector.png)
 
-我们创建了自己的filebeat镜像。创建过程和使用方式见https://github.com/rootsongjc/docker-images
-
-镜像地址：`index.tenxcloud.com/jimmy/filebeat:5.4.0`
+我们创建了自己的filebeat镜像。创建过程和使用方式见 <https://github.com/rootsongjc/docker-images>，您可以使用该仓库中的源码创建镜像。
 
 ## 测试
 
@@ -53,14 +51,14 @@ spec:
         k8s-app: filebeat-test
     spec:
       containers:
-      - image: sz-pg-oam-docker-hub-001.tendcloud.com/library/filebeat:5.4.0
+      - image: harbor-001.jimmysong.io/library/filebeat:5.4.0
         name: filebeat
         volumeMounts:
         - name: app-logs
           mountPath: /log
         - name: filebeat-config
           mountPath: /etc/filebeat/
-      - image: sz-pg-oam-docker-hub-001.tendcloud.com/library/analytics-docker-test:Build_8
+      - image: harbor-001.jimmysong.io/library/analytics-docker-test:Build_8
         name : app
         ports:
         - containerPort: 80
@@ -108,7 +106,7 @@ data:
 
 **说明**
 
-该文件中包含了配置文件filebeat的配置文件的[ConfigMap](http://rootsongjc.github.io/blogs/kubernetes-configmap-introduction/)，因此不需要再定义环境变量。
+该文件中包含了配置文件filebeat的配置文件的[ConfigMap](https://jimmysong.io/posts/kubernetes-configmap-introduction/)，因此不需要再定义环境变量。
 
 当然你也可以不同ConfigMap，通过传统的传递环境变量的方式来配置filebeat。
 
@@ -116,7 +114,7 @@ data:
 
 ```yaml
       containers:
-      - image: sz-pg-oam-docker-hub-001.tendcloud.com/library/filebeat:5.4.0
+      - image: harbor-001.jimmysong.io/library/filebeat:5.4.0
         name: filebeat
         volumeMounts:
         - name: app-logs
@@ -161,7 +159,7 @@ green open filebeat-docker-test            7xPEwEbUQRirk8oDX36gAA 5 1   2151    
 
 ![Kibana页面](../images/filebeat-docker-test.jpg)
 
-点开没个日志条目，可以看到以下详细字段：
+点开每个日志条目，可以看到以下详细字段：
 
 ![filebeat收集的日志详细信息](../images/kubernetes-filebeat-detail.png)
 
@@ -170,4 +168,3 @@ green open filebeat-docker-test            7xPEwEbUQRirk8oDX36gAA 5 1   2151    
 - source表示filebeat容器中的日志目录
 
 我们可以通过人为得使`index` = `service name`，这样就可以方便的收集和查看每个service的日志。
-

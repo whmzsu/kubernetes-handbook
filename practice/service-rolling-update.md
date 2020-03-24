@@ -42,7 +42,7 @@ Deployment同样为Kubernetes的一个核心内容，主要职责同样是为了
 
 **Web服务的代码main.go**
 
-```Go
+```go
 package main
 
 import (
@@ -67,7 +67,7 @@ func main() {
 
 **创建Dockerfile**
 
-```dockerfile
+```docker
 FROM alpine:3.5
 MAINTAINER Jimmy Song<rootsongjc@gmail.com>
 ADD hellov2 /
@@ -91,11 +91,10 @@ TAG = v1
 # Build for linux amd64
 build:
 	GOOS=linux GOARCH=amd64 go build -o hello${TAG} main.go
-	docker build -t sz-pg-oam-docker-hub-001.tendcloud.com/library/hello:${TAG} .
+	docker build -t harbor-001.jimmysong.io/library/hello:${TAG} .
 
-# Push to tenxcloud
 push:
-	docker push sz-pg-oam-docker-hub-001.tendcloud.com/library/hello:${TAG}
+	docker push harbor-001.jimmysong.io/library/hello:${TAG}
 
 # Clean 
 clean:
@@ -130,7 +129,7 @@ spec:
     spec:
       containers:
       - name: rolling-update-test
-        image: sz-pg-oam-docker-hub-001.tendcloud.com/library/hello:v1
+        image: harbor-001.jimmysong.io/library/hello:v1
         ports:
         - containerPort: 9090
 ---
@@ -177,7 +176,7 @@ kubectl create -f rolling-update-test.yaml
 
 注意：172.20.0.119是我们之前使用keepalived创建的VIP。
 
-打开浏览器访问http://rolling-update-test.traefik.io将会看到以下输出：
+打开浏览器访问 `http://rolling-update-test.traefik.io` 将会看到以下输出：
 
 ```
 This is version 1.
@@ -194,7 +193,7 @@ kubectl apply -f rolling-update-test.yaml
 也可以参考[Kubernetes Deployment Concept](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)中的方法，直接设置新的镜像。
 
 ```
-kubectl set image deployment/rolling-update-test rolling-update-test=sz-pg-oam-docker-hub-001.tendcloud.com/library/hello:v2
+kubectl set image deployment/rolling-update-test rolling-update-test=harbor-001.jimmysong.io/library/hello:v2
 ```
 
 或者使用`kubectl edit deployment/rolling-update-test`修改镜像名称后保存。
@@ -205,7 +204,7 @@ kubectl set image deployment/rolling-update-test rolling-update-test=sz-pg-oam-d
 kubectl rollout status deployment/rolling-update-test
 ```
 
-升级完成后在浏览器中刷新http://rolling-update-test.traefik.io将会看到以下输出：
+升级完成后在浏览器中刷新`http://rolling-update-test.traefik.io`将会看到以下输出：
 
 ```
 This is version 2.
@@ -220,7 +219,7 @@ This is version 2.
 举个例子：
 
 ```bash
-$ kubectl -n spark-cluster rolling-update zeppelin-controller --image sz-pg-oam-docker-hub-001.tendcloud.com/library/zeppelin:0.7.1
+$ kubectl -n spark-cluster rolling-update zeppelin-controller --image harbor-001.jimmysong.io/library/zeppelin:0.7.1
 Created zeppelin-controller-99be89dbbe5cd5b8d6feab8f57a04a8b
 Scaling up zeppelin-controller-99be89dbbe5cd5b8d6feab8f57a04a8b from 0 to 1, scaling down zeppelin-controller from 1 to 0 (keep 1 pods available, don't exceed 2 pods)
 Scaling zeppelin-controller-99be89dbbe5cd5b8d6feab8f57a04a8b up to 1
@@ -234,10 +233,6 @@ replicationcontroller "zeppelin-controller" rolling updated
 
 ## 参考
 
-[Rolling update机制解析](http://dockone.io/article/328)
-
-[Running a Stateless Application Using a Deployment](https://kubernetes.io/docs/tasks/run-application/run-stateless-application-deployment/)
-
-[Simple Rolling Update](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/simple-rolling-update.md)
-
-[使用kubernetes的deployment进行RollingUpdate](https://segmentfault.com/a/1190000008232770)
+- [Rolling update机制解析](http://dockone.io/article/328)
+- [Running a Stateless Application Using a Deployment](https://kubernetes.io/docs/tasks/run-application/run-stateless-application-deployment/)
+- [使用kubernetes的deployment进行RollingUpdate](https://segmentfault.com/a/1190000008232770)

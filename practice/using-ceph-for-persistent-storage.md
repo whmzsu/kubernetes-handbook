@@ -222,7 +222,7 @@ spec:
         pod.beta.kubernetes.io/init-containers: '[
           {
             "name": "galera-init",    
-            "image": "sz-pg-oam-docker-hub-001.tendcloud.com/library/k8s-galera-init:latest",
+            "image": "harbor-001.jimmysong.io/library/k8s-galera-init:latest",
             "args": ["-service=mysql"],
             "env": [
               {
@@ -256,7 +256,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
       - name: mysql
-        image: sz-pg-oam-docker-hub-001.tendcloud.com/library/mariadb:10.1
+        image: harbor-001.jimmysong.io/library/mariadb:10.1
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3306
@@ -401,12 +401,5 @@ func (util *RBDUtil) CreateImage(p *rbdVolumeProvisioner) (r *v1.RBDVolumeSource
 
 ## 参考
 
-https://github.com/kubernetes/examples/blob/master/staging/volumes/cephfs/README.md
-
-[k8s-ceph-statefulsets-storageclass-nfs 动态卷有状态应用实践](http://blog.csdn.net/idea77/article/details/72842723)
-
-[Kubernetes persistent storage with Ceph](https://crondev.com/kubernetes-persistent-storage-ceph/)
-
-https://kubernetes.io/docs/concepts/storage/persistent-volumes/#ceph-rbd
-
-[Error creating rbd image: executable file not found in $PATH#38923](https://github.com/kubernetes/kubernetes/issues/38923)
+- https://kubernetes.io/docs/concepts/storage/persistent-volumes/#ceph-rbd
+- [Error creating rbd image: executable file not found in $PATH#38923](https://github.com/kubernetes/kubernetes/issues/38923)

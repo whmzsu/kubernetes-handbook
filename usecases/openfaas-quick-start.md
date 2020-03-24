@@ -17,8 +17,6 @@ OpenFaaS的架构如下图：
 
 ## 部署
 
-参考[Deployment guide for Kubernetes](https://github.com/openfaas/faas/blob/master/guide/deployment_k8s.md)部署OpenFaaS。
-
 如果您的Kuberentes集群可以访问DockerHub那么直接使用官方提供的YAML文件即可。
 
 YAML文件见官方仓库：https://github.com/openfaas/faas-netes
@@ -44,7 +42,7 @@ OpenFaaS安装好后会启动一个Prometheus，使用31119端口，通过任意
 
 在这里可以看到函数的运行情况。
 
-同时OpenFaaS还提供了Dashboard，需要我们自己向Grafana中配置Prometheus数据源后导入，JSON配置见：https://grafana.com/dashboards/3526，可以下载后直接导入到Grafana中。
+同时OpenFaaS还提供了Dashboard，需要我们自己向Grafana中配置Prometheus数据源后导入，JSON配置见：<https://grafana.com/dashboards/3526>，可以下载后直接导入到Grafana中。
 
 ![OpenFaas Grafana监控](../images/openfaas-grafana.jpg)
 
@@ -103,4 +101,4 @@ OpenFaaS的命令行工具`faas-cli`的详细使用说明见：https://github.co
 
 ## 参考
 
-[Deployment guide for Kubernetes - GitHub openfaas/faas](Deployment guide for Kubernetes)
+- [Deployment guide for Kubernetes - GitHub openfaas/faas](http://docs.openfaas.com/deployment/kubernetes/)

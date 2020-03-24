@@ -2,7 +2,7 @@
 
 我们复用kubernetes的三台主机做glusterfs存储。
 
-以下步骤参考自：https://www.xf80.com/2017/04/21/kubernetes-glusterfs/（该网站已无法访问）
+以下步骤参考自：`https://www.xf80.com/2017/04/21/kubernetes-glusterfs/`（该网站已无法访问）
 
 ## 安装glusterfs
 
@@ -33,13 +33,13 @@ $ systemctl status glusterd.service
 
 ## 配置 glusterfs
 
-```Bash
+```bash
 # 配置 hosts
 
 $ vi /etc/hosts
-172.20.0.113   sz-pg-oam-docker-test-001.tendcloud.com 
-172.20.0.114   sz-pg-oam-docker-test-002.tendcloud.com 
-172.20.0.115   sz-pg-oam-docker-test-003.tendcloud.com 
+172.20.0.113   test-001.jimmysong.io 
+172.20.0.114   test-002.jimmysong.io 
+172.20.0.115   test-003.jimmysong.io 
 ```
 
 ```bash
@@ -53,19 +53,19 @@ $ mkdir /opt/gfs_data
 ```bash
 # 添加节点到 集群
 # 执行操作的本机不需要probe 本机
-[root@sz-pg-oam-docker-test-001 ~]#
-gluster peer probe sz-pg-oam-docker-test-002.tendcloud.com
-gluster peer probe sz-pg-oam-docker-test-003.tendcloud.com
+[root@test-001 ~]#
+gluster peer probe test-002.jimmysong.io
+gluster peer probe test-003.jimmysong.io
 
 # 查看集群状态
 $ gluster peer status
 Number of Peers: 2
 
-Hostname: sz-pg-oam-docker-test-002.tendcloud.com
+Hostname: test-002.jimmysong.io
 Uuid: f25546cc-2011-457d-ba24-342554b51317
 State: Peer in Cluster (Connected)
 
-Hostname: sz-pg-oam-docker-test-003.tendcloud.com
+Hostname: test-003.jimmysong.io
 Uuid: 42b6cad1-aa01-46d0-bbba-f7ec6821d66d
 State: Peer in Cluster (Connected)
 ```
@@ -74,7 +74,7 @@ State: Peer in Cluster (Connected)
 
 GlusterFS中的volume的模式有很多中，包括以下几种：
 
-- **分布卷（默认模式）**：即DHT, 也叫 分布卷: 将文件已hash算法随机分布到 一台服务器节点中存储。
+- **分布卷（默认模式）**：即DHT, 也叫 分布卷: 将文件以hash算法随机分布到 一台服务器节点中存储。
 - **复制模式**：即AFR, 创建volume 时带 replica x 数量: 将文件复制到 replica x 个节点中。
 - **条带模式**：即Striped, 创建volume 时带 stripe x 数量： 将文件切割成数据块，分别存储到 stripe x 个节点中 ( 类似raid 0 )。
 - **分布式条带模式**：最少需要4台服务器才能创建。 创建volume 时 stripe 2 server = 4 个节点： 是DHT 与 Striped 的组合型。
@@ -88,7 +88,7 @@ GlusterFS中的volume的模式有很多中，包括以下几种：
 
 ```bash
 # 创建分布卷
-$ gluster volume create k8s-volume transport tcp sz-pg-oam-docker-test-001.tendcloud.com:/opt/gfs_data sz-pg-oam-docker-test-002.tendcloud.com:/opt/gfs_data sz-pg-oam-docker-test-003.tendcloud.com:/opt/gfs_data force
+$ gluster volume create k8s-volume transport tcp test-001.jimmysong.io:/opt/gfs_data test-002.jimmysong.io:/opt/gfs_data test-003.jimmysong.io:/opt/gfs_data force
 
 # 查看volume状态
 $ gluster volume info
@@ -100,9 +100,9 @@ Snapshot Count: 0
 Number of Bricks: 3
 Transport-type: tcp
 Bricks:
-Brick1: sz-pg-oam-docker-test-001.tendcloud.com:/opt/gfs_data
-Brick2: sz-pg-oam-docker-test-002.tendcloud.com:/opt/gfs_data
-Brick3: sz-pg-oam-docker-test-003.tendcloud.com:/opt/gfs_data
+Brick1: test-001.jimmysong.io:/opt/gfs_data
+Brick2: test-002.jimmysong.io:/opt/gfs_data
+Brick3: test-003.jimmysong.io:/opt/gfs_data
 Options Reconfigured:
 transport.address-family: inet
 nfs.disable: on
@@ -135,8 +135,6 @@ $ gluster volume set k8s-volume performance.write-behind-window-size 1024MB
 
 ## Kubernetes中配置glusterfs
 
-官方的文档见：https://github.com/kubernetes/kubernetes/tree/master/examples/volumes/glusterfs
-
 以下用到的所有yaml和json配置文件可以在[../manifests/glusterfs](https://github.com/rootsongjc/kubernetes-handbook/blob/master/manifests/glusterfs)中找到。注意替换其中私有镜像地址为你自己的镜像地址。
 
 
@@ -151,9 +149,9 @@ $ yum install -y glusterfs glusterfs-fuse
 
 $ vi /etc/hosts
 
-172.20.0.113   sz-pg-oam-docker-test-001.tendcloud.com
-172.20.0.114   sz-pg-oam-docker-test-002.tendcloud.com
-172.20.0.115   sz-pg-oam-docker-test-003.tendcloud.com
+172.20.0.113   test-001.jimmysong.io
+172.20.0.114   test-002.jimmysong.io
+172.20.0.115   test-003.jimmysong.io
 ```
 
 因为我们glusterfs跟kubernetes集群复用主机，因为此这一步可以省去。
@@ -161,7 +159,7 @@ $ vi /etc/hosts
 ## 配置 endpoints
 
 ```bash
-$ curl -O https://raw.githubusercontent.com/kubernetes/kubernetes/master/examples/volumes/glusterfs/glusterfs-endpoints.json
+$ curl -O https://raw.githubusercontent.com/kubernetes/examples/master/volumes/glusterfs/glusterfs-endpoints.json
 
 # 修改 endpoints.json ，配置 glusters 集群节点ip
 # 每一个 addresses 为一个 ip 组
@@ -190,7 +188,7 @@ $ kubectl get ep
 ## 配置 service
 
 ```bash
-$ curl -O https://raw.githubusercontent.com/kubernetes/kubernetes/master/examples/volumes/glusterfs/glusterfs-service.json
+$ curl -O https://raw.githubusercontent.com/kubernetes/examples/master/volumes/glusterfs/glusterfs-service.json
 
 # service.json 里面查找的是 enpointes 的名称与端口，端口默认配置为 1，我改成了1990
 
@@ -204,7 +202,7 @@ $ kubectl get svc
 ## 创建测试 pod
 
 ```bash
-$ curl -O https://raw.githubusercontent.com/kubernetes/kubernetes/master/examples/volumes/glusterfs/glusterfs-pod.json
+$ curl -O https://raw.githubusercontent.com/kubernetes/examples/master/volumes/glusterfs/glusterfs-pod.json
 
 # 编辑 glusterfs-pod.json
 # 修改 volumes  下的 path 为上面创建的 volume 名称
@@ -270,7 +268,7 @@ PVC属性
 
 ## 配置PVC
 
-```Bash
+```bash
 $ cat glusterfs-pvc.yaml
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -295,7 +293,7 @@ glusterfs-nginx   Bound     gluster-dev-volume   8Gi        RWX                 
 
 ## 创建 nginx deployment 挂载 volume
 
-```Bash
+```bash
 $ vi nginx-deployment.yaml
 apiVersion: extensions/v1beta1 
 kind: Deployment 
@@ -342,15 +340,12 @@ $ kubectl exec -it nginx-dm-3698525684-g0mvt -- ls -lt /usr/share/nginx/html/ind
 
 # 验证 glusterfs
 # 因为我们使用分布卷，所以可以看到某个节点中有文件
-[root@sz-pg-oam-docker-test-001 ~] ls /opt/gfs_data/
-[root@sz-pg-oam-docker-test-002 ~] ls /opt/gfs_data/
+[root@test-001 ~] ls /opt/gfs_data/
+[root@test-002 ~] ls /opt/gfs_data/
 index.html
-[root@sz-pg-oam-docker-test-003 ~] ls /opt/gfs_data/
+[root@test-003 ~] ls /opt/gfs_data/
 ```
 
 ## 参考
 
-[CentOS 7 安装 GlusterFS](http://www.cnblogs.com/jicki/p/5801712.html)
-
-[GlusterFS with kubernetes](https://github.com/kubernetes/kubernetes/tree/master/examples/volumes/glusterfs)
-
+- [CentOS 7 安装 GlusterFS](http://www.cnblogs.com/jicki/p/5801712.html)
